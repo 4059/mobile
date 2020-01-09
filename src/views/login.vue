@@ -7,16 +7,18 @@
         label="手机号"
         required
         placeholder="请输入手机号">
+        <van-icon name="phone-o" size='20'/>
         </van-field>
         <van-field
-            v-model="user.code"
-            center
-            required
-            clearable
-            label="短信验证码"
-            placeholder="请输入短信验证码"
+          v-model="user.code"
+          required
+          center
+          clearable
+          label="短信验证码"
+          placeholder="请输入短信验证码"
         >
-            <van-button slot="button" size="small" type="primary">发送验证码</van-button>
+          <van-count-down @finish='isCountDown = false' slot="button" v-if="isCountDown" :time="1000*6" format="ss 秒"></van-count-down>
+          <van-button v-else @click="onCountDown" slot="button" size="small" type="primary" round>发送验证码</van-button>
         </van-field>
     </van-cell-group>
     <div class="login-btn-box">
@@ -26,7 +28,7 @@
 </template>
 
 <script>
-import { login } from '@/api/user'
+import { login, getSmsCode } from '@/api/user'
 export default {
   data () {
     return {
@@ -34,10 +36,25 @@ export default {
         mobile: '',
         code: ''
       },
-      loading: false
+      loading: false,
+      isCountDown: false
     }
   },
   methods: {
+    async onCountDown () {
+      let { mobile } = this.user
+      try {
+        this.isCountDown = true
+        await getSmsCode(mobile)
+      } catch (err) {
+        this.isCountDown = false
+        if (err.response.status === 429) {
+          this.$toast('请勿频繁发送验证码')
+          return
+        }
+        this.$toast('发送失败')
+      }
+    },
     async onLogin () {
       const user = this.user
       this.loading = true
